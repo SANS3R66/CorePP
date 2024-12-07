@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cstring>
+#include <iostream>
 
 class ByteStream
 {
@@ -14,4 +15,7 @@ public:
 
     void writeInt(int32_t value);
     int32_t readInt();
+
+    void writeString(std::string value);
+    std::string readString();
 };

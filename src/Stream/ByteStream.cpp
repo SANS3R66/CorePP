@@ -37,3 +37,18 @@ int32_t ByteStream::readInt()
     position += 4;
     return value;
 }
+
+void ByteStream::writeString(std::string value)
+{
+    writeInt(value.size());
+    memcpy(buffer + position, value.c_str(), value.size());
+    position += value.size();
+}
+
+std::string ByteStream::readString()
+{
+    uint32_t length = readInt();
+    std::string result((char *)(buffer + position), length);
+    position += length;
+    return result;
+}
