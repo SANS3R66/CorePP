@@ -19,6 +19,12 @@ int main()
     stream.seek(0);
     std::cout << stream.readString() << std::endl;
 
+    stream.reset();
+
+    stream.writeByte(255);
+    stream.seek(0);
+    std::cout << stream.readByte() << std::endl;
+
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;
 

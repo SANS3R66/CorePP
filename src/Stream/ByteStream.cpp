@@ -52,3 +52,13 @@ std::string ByteStream::readString()
     position += length;
     return result;
 }
+
+void ByteStream::writeByte(int value)
+{
+    buffer[position] = (value & 0xFF);
+}
+
+int ByteStream::readByte()
+{
+    return buffer[position];
+}

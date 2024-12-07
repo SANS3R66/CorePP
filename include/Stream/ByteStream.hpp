@@ -18,4 +18,7 @@ public:
 
     void writeString(std::string value);
     std::string readString();
+
+    void writeByte(int value);
+    int readByte();
 };
