@@ -23,7 +23,7 @@ add msys2\usr\bin; msys2\mingw64\bin in the PATH
 ## building
 firstly, you need to initialize the project; you dont need to initialize it everytime you building
 ```
-cmake -S . -B build -G Ninja
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 ```
 
 after that,
