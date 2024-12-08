@@ -5,8 +5,7 @@
 int main()
 {
     auto start = std::chrono::high_resolution_clock::now();
-
-    std::cout << "Hello, Core++!\n";
+    
     ByteStream stream;
     
     stream.writeInt(1488);
@@ -24,6 +23,12 @@ int main()
     stream.writeByte(255);
     stream.seek(0);
     std::cout << stream.readByte() << std::endl;
+
+    stream.reset();
+
+    stream.writeVInt(50000);
+    stream.seek(0);
+    std::cout << stream.readVInt() << std::endl;
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;

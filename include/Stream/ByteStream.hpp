@@ -21,4 +21,9 @@ public:
 
     void writeByte(int value);
     int readByte();
+    
+    void writeVInt(int32_t a1);
+    int32_t readVInt();
+
+    bool canRead(int a1);
 };
