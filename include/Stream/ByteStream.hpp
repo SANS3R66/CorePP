@@ -26,4 +26,5 @@ public:
     int32_t readVInt();
 
     bool canRead(int a1);
+    bool canWrite(int a1);
 };

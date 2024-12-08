@@ -20,11 +20,14 @@ void ByteStream::seek(long value)
 
 void ByteStream::writeInt(int32_t value)
 {
-    buffer[position] = (value >> 24) & 0xFF;
-    buffer[position + 1] = (value >> 16) & 0xFF;
-    buffer[position + 2] = (value >> 8) & 0xFF;
-    buffer[position + 3] = value & 0xFF;
-    position += 4;
+    if (canWrite(4))
+    {
+        buffer[position] = (value >> 24) & 0xFF;
+        buffer[position + 1] = (value >> 16) & 0xFF;
+        buffer[position + 2] = (value >> 8) & 0xFF;
+        buffer[position + 3] = value & 0xFF;
+        position += 4;
+    }
 }
 
 int32_t ByteStream::readInt()
@@ -44,9 +47,13 @@ int32_t ByteStream::readInt()
 
 void ByteStream::writeString(std::string value)
 {
-    writeInt(value.size());
-    memcpy(buffer + position, value.c_str(), value.size());
-    position += value.size();
+    int len = value.size();
+    writeInt(len);
+    if (canWrite(len))
+    {
+        memcpy(buffer + position, value.c_str(), len);
+        position += len;
+    }
 }
 
 std::string ByteStream::readString()
@@ -63,8 +70,11 @@ std::string ByteStream::readString()
 
 void ByteStream::writeByte(int value)
 {
-    buffer[position] = (value & 0xFF);
-    position += 1;
+    if (canWrite(1))
+    {
+        buffer[position] = (value & 0xFF);
+        position += 1;
+    }
 }
 
 int ByteStream::readByte()
@@ -118,4 +128,13 @@ bool ByteStream::canRead(int a1)
         return true;
     }
     return false;
+}
+
+bool ByteStream::canWrite(int a1)
+{
+    if ((position + a1) - 1024 > 0) // 1024 - max offset
+    {
+        return false;
+    }
+    return true;
 }
