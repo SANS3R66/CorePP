@@ -17,8 +17,12 @@ jobs:
         build_type: [Release]
         include:
           - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
             generator: "Ninja"
           - os: ubuntu-latest
+            c_compiler: gcc
+            cpp_compiler: g++
             generator: "Ninja"
 
     steps:
@@ -33,10 +37,14 @@ jobs:
           base-devel
           mingw-w64-ucrt-x86_64-toolchain
           mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
 
-    - name: Set up Ninja
-      uses: juliankern/actions-setup-ninja@v2
-      if: matrix.os == 'windows-latest' || matrix.os == 'ubuntu-latest'
+    - name: Set up Ninja for Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        architecture: 'x64'
 
     - name: Install Ninja for Ubuntu
       if: matrix.os == 'ubuntu-latest'
@@ -47,23 +55,24 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+        echo "ninja-path=${{ runner.tool_cache }}/ninja-${{ matrix.os }}/ninja" >> "$GITHUB_OUTPUT"
 
-    - name: Configure CMake
-      run: |
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
-              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-              -G ${{ matrix.generator }}
-              -A x64  # For Windows builds
-              -S ${{ github.workspace }}
+    - name: Add Ninja to PATH for Windows
       if: matrix.os == 'windows-latest'
+      run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
+
+    - name: Add Ninja to PATH for Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      run: echo "/usr/bin" >> $GITHUB_PATH
 
     - name: Configure CMake
-      run: |
+      run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
-              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-              -G ${{ matrix.generator }}
-              -S ${{ github.workspace }}
-      if: matrix.os == 'ubuntu-latest'
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -G ${{ matrix.generator }}
+        -S ${{ github.workspace }}
 
     - name: Build
       run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
