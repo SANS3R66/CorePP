@@ -1,4 +1,4 @@
-name: CMake on multiple platforms
+name: CMake on Ubuntu
 
 on:
   push:
@@ -8,46 +8,17 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
         build_type: [Release]
-        include:
-          - os: windows-latest
-            c_compiler: cl
-            cpp_compiler: cl
-            generator: "Ninja"
-          - os: ubuntu-latest
-            c_compiler: gcc
-            cpp_compiler: g++
-            generator: "Ninja"
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up MSYS2 for Windows
-      if: matrix.os == 'windows-latest'
-      uses: msys2/setup-msys2@v2
-      with:
-        update: true
-        install: >-
-          base-devel
-          mingw-w64-ucrt-x86_64-toolchain
-          mingw-w64-x86_64-cmake
-          mingw-w64-x86_64-ninja
-
-    - name: Set up Ninja for Ubuntu
-      if: matrix.os == 'ubuntu-latest'
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
-        architecture: 'x64'
-
     - name: Install Ninja for Ubuntu
-      if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get install ninja-build
 
     - name: Set reusable strings
@@ -55,23 +26,14 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-        echo "ninja-path=${{ runner.tool_cache }}/ninja-${{ matrix.os }}/ninja" >> "$GITHUB_OUTPUT"
-
-    - name: Add Ninja to PATH for Windows
-      if: matrix.os == 'windows-latest'
-      run: echo "C:\msys64\mingw64\bin" >> $GITHUB_PATH
-
-    - name: Add Ninja to PATH for Ubuntu
-      if: matrix.os == 'ubuntu-latest'
-      run: echo "/usr/bin" >> $GITHUB_PATH
 
     - name: Configure CMake
       run: >
         cmake -B ${{ steps.strings.outputs.build-output-dir }}
-        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
-        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_CXX_COMPILER=g++
+        -DCMAKE_C_COMPILER=gcc
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -G ${{ matrix.generator }}
+        -G Ninja
         -S ${{ github.workspace }}
 
     - name: Build
