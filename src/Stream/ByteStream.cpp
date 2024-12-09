@@ -1,140 +1,109 @@
 #include "Stream/ByteStream.hpp"
 #include <cstdint>
 #include <cstring>
+#include <string>
 
-ByteStream::ByteStream()
-{
-    reset();
-}
+class ByteStream {
+public:
+    static constexpr size_t bufferSize = 1024;
 
-void ByteStream::reset()
-{
-    position = 0;
-    memset(buffer, 0, sizeof(buffer));
-}
-
-void ByteStream::seek(long value)
-{
-    position = value;
-}
-
-void ByteStream::writeInt(int32_t value)
-{
-    if (canWrite(4))
-    {
-        buffer[position] = (value >> 24) & 0xFF;
-        buffer[position + 1] = (value >> 16) & 0xFF;
-        buffer[position + 2] = (value >> 8) & 0xFF;
-        buffer[position + 3] = value & 0xFF;
-        position += 4;
+    ByteStream() : position(0) {
+        std::memset(buffer, 0, sizeof(buffer));
     }
-}
 
-int32_t ByteStream::readInt()
-{
-    uint32_t value = 0;
-
-    if (canRead(4))
-    {
-        value |= ((uint32_t)(buffer[position]) << 24);
-        value |= ((uint32_t)(buffer[position + 1]) << 16);
-        value |= ((uint32_t)(buffer[position + 2]) << 8);
-        value |= (uint32_t)(buffer[position + 3]);
-        position += 4;
+    void reset() {
+        position = 0;
+        std::memset(buffer, 0, sizeof(buffer));
     }
-    return value;
-}
 
-void ByteStream::writeString(std::string value)
-{
-    int len = value.size();
-    writeInt(len);
-    if (canWrite(len))
-    {
-        memcpy(buffer + position, value.c_str(), len);
-        position += len;
+    void seek(size_t pos) {
+        position = pos;
     }
-}
 
-std::string ByteStream::readString()
-{
-    uint32_t length = readInt();
-    std::string result = "";
-    if (canRead(length))
-    {
-        result = std::string((char *)(buffer + position), length);
-        position += length;
-    }
-    return result;
-}
-
-void ByteStream::writeByte(int value)
-{
-    if (canWrite(1))
-    {
-        buffer[position] = (value & 0xFF);
-        position += 1;
-    }
-}
-
-int ByteStream::readByte()
-{
-    int result;
-    if (canRead(1))
-    {
-        result = buffer[position];
-        position += 1;
-    }
-    return result;
-}
-
-void ByteStream::writeVInt(int32_t value)
-{
-    int32_t zigzagValue = (value << 1) ^ (value >> 31);
-
-    while (zigzagValue > 0x7F)
-    {
-        writeByte((zigzagValue & 0x7F) | 0x80);
-        zigzagValue >>= 7;
-    }
-    writeByte(zigzagValue & 0x7F);
-}
-
-int32_t ByteStream::readVInt()
-{
-    int32_t result = 0;
-    int shift = 0;
-    int byte;
-
-    while (true)
-    {
-        byte = readByte();
-        result |= (byte & 0x7F) << shift;
-        shift += 7;
-
-        if (!(byte & 0x80))
-        {
-            break;
+    void writeInt(int32_t value) {
+        if (canWrite(4)) {
+            buffer[position] = (value >> 24) & 0xFF;
+            buffer[position + 1] = (value >> 16) & 0xFF;
+            buffer[position + 2] = (value >> 8) & 0xFF;
+            buffer[position + 3] = value & 0xFF;
+            position += 4;
         }
     }
 
-    return (result >> 1) ^ (-(result & 1));
-}
-
-bool ByteStream::canRead(int a1)
-{
-    if (sizeof(buffer) - (position + a1) >= 0)
-    {
-        return true;
+    int32_t readInt() {
+        int32_t value = 0;
+        if (canRead(4)) {
+            value = (buffer[position] << 24) |
+                    (buffer[position + 1] << 16) |
+                    (buffer[position + 2] << 8) |
+                    buffer[position + 3];
+            position += 4;
+        }
+        return value;
     }
-    return false;
-}
 
-bool ByteStream::canWrite(int a1)
-{
-    if ((position + a1) - 1024 > 0) // 1024 - max offset
-    {
-        return false;
+    void writeString(const std::string& value) {
+        int len = value.size();
+        writeInt(len);
+        if (canWrite(len)) {
+            std::copy(value.begin(), value.begin() + len, buffer + position);
+            position += len;
+        }
     }
-    return true;
-}
+
+    std::string readString() {
+        uint32_t length = readInt();
+        std::string result;
+        if (canRead(length)) {
+            result.assign(buffer + position, length);
+            position += length;
+        }
+        return result;
+    }
+
+    void writeByte(int value) {
+        if (canWrite(1)) {
+            buffer[position++] = static_cast<uint8_t>(value);
+        }
+    }
+
+    int readByte() {
+        if (canRead(1)) {
+            return buffer[position++];
+        }
+        return -1; // Or throw an exception
+    }
+
+    void writeVInt(int32_t value) {
+        int32_t zigzagValue = (value << 1) ^ (value >> 31);
+        while (zigzagValue >= 0x80) {
+            writeByte((zigzagValue & 0x7F) | 0x80);
+            zigzagValue >>= 7;
+        }
+        writeByte(zigzagValue & 0x7F);
+    }
+
+    int32_t readVInt() {
+        int32_t result = 0;
+        int shift = 0;
+        int byte;
+        do {
+            byte = readByte();
+            result |= (byte & 0x7F) << shift;
+            shift += 7;
+        } while (byte & 0x80);
+        return (result >> 1) ^ (-(result & 1));
+    }
+
+private:
+    uint8_t buffer[bufferSize];
+    size_t position;
+
+    [[nodiscard]] bool canRead(size_t size) const {
+        return position + size <= bufferSize;
+    }
+
+    [[nodiscard]] bool canWrite(size_t size) const {
+        return position + size <= bufferSize;
+    }
+};
