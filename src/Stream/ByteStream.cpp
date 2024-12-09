@@ -85,15 +85,38 @@ int ByteStream::readByte()
     return -1;
 }
 
-void ByteStream::writeVInt(int32_t value)
+void ByteStream::writeVInt(int32_t value) // max number is 658067456 btw (or im poopoo coder sorr)
 {
-    int32_t zigzagValue = (value << 1) ^ (value >> 31);
-    while (zigzagValue >= 0x80)
-    {
-        writeByte((zigzagValue & 0x7F) | 0x80);
-        zigzagValue >>= 7;
+    int32_t temp = (value >> 25) & 0x40;
+    int32_t flipped = value ^ (value >> 31);
+    temp |= value & 0x3F;
+    value >>= 6;
+    flipped >>= 6;
+
+    if (flipped == 0) {
+        writeByte(temp);
+        return;
     }
-    writeByte(zigzagValue & 0x7F);
+
+    writeByte(temp | 0x80);
+
+    flipped >>= 7;
+    int32_t r = 0;
+    if (flipped != 0) {
+        r = 0x80;
+    }
+    writeByte((value & 0x7F) | r);
+    value >>= 7;
+
+    while (flipped != 0) {
+        flipped >>= 7;
+        r = 0;
+        if (flipped != 0) {
+            r = 0x80;
+        }
+        writeByte((value & 0x7F) | r);
+        value >>= 7;
+    }
 }
 
 int32_t ByteStream::readVInt()
@@ -104,6 +127,13 @@ int32_t ByteStream::readVInt()
     do
     {
         byte = readByte();
+        if (shift == 0)
+        {
+            int a1 = (byte & 0x40) >> 6;
+            int a2 = (byte & 0x80) >> 7;
+            int s = (byte << 1) & 0x7E;
+            byte = s | (a2 << 7) | a1;
+        }
         result |= (byte & 0x7F) << shift;
         shift += 7;
     } while (byte & 0x80);

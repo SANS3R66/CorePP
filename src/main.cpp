@@ -26,7 +26,7 @@ int main()
 
     stream.reset();
 
-    stream.writeVInt(50000);
+    stream.writeVInt(658067456);
     stream.seek(0);
     std::cout << stream.readVInt() << std::endl;
 
