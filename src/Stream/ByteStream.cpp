@@ -19,7 +19,7 @@ void ByteStream::seek(size_t pos)
     position = pos;
 }
 
-void ByteStream::writeInt(int32_t value)
+void ByteStream::writeInt(int32_t value = 0)
 {
     if (canWrite(4))
     {
@@ -56,11 +56,16 @@ void ByteStream::writeString(const std::string &value)
     }
 }
 
+void ByteStream::writeString() // null string
+{
+    writeInt(-1);
+}
+
 std::string ByteStream::readString()
 {
     uint32_t length = readInt();
     std::string result;
-    if (canRead(length))
+    if (canRead(length) && length > 0)
     {
         result.assign((char *)buffer + position, length);
         position += length;
@@ -68,7 +73,7 @@ std::string ByteStream::readString()
     return result;
 }
 
-void ByteStream::writeByte(int value)
+void ByteStream::writeByte(int value = 0)
 {
     if (canWrite(1))
     {
@@ -85,7 +90,7 @@ int ByteStream::readByte()
     return -1;
 }
 
-void ByteStream::writeVInt(int32_t value) // max number is 658067456 btw (or im poopoo coder sorr)
+void ByteStream::writeVInt(int32_t value = 0) // max number is 658067456 btw (or im poopoo coder sorr)
 {
     int32_t temp = (value >> 25) & 0x40;
     int32_t flipped = value ^ (value >> 31);
@@ -93,7 +98,8 @@ void ByteStream::writeVInt(int32_t value) // max number is 658067456 btw (or im 
     value >>= 6;
     flipped >>= 6;
 
-    if (flipped == 0) {
+    if (flipped == 0)
+    {
         writeByte(temp);
         return;
     }
@@ -102,16 +108,19 @@ void ByteStream::writeVInt(int32_t value) // max number is 658067456 btw (or im 
 
     flipped >>= 7;
     int32_t r = 0;
-    if (flipped != 0) {
+    if (flipped != 0)
+    {
         r = 0x80;
     }
     writeByte((value & 0x7F) | r);
     value >>= 7;
 
-    while (flipped != 0) {
+    while (flipped != 0)
+    {
         flipped >>= 7;
         r = 0;
-        if (flipped != 0) {
+        if (flipped != 0)
+        {
             r = 0x80;
         }
         writeByte((value & 0x7F) | r);
@@ -138,6 +147,45 @@ int32_t ByteStream::readVInt()
         shift += 7;
     } while (byte & 0x80);
     return (result >> 1) ^ (-(result & 1));
+}
+
+void ByteStream::writeBoolean(bool value = false)
+{
+    if (canWrite(1))
+    {
+        buffer[position++] = value ? 1 : 0;
+    }
+}
+
+bool ByteStream::readBoolean()
+{
+    if (canRead(1))
+    {
+        return buffer[position++] != 0;
+    }
+    return false;
+}
+
+void ByteStream::writeLong(int32_t value1 = 0, int32_t value2 = 0) // basically 2 ints
+{
+    writeInt(value1);
+    writeInt(value2);
+}
+
+void ByteStream::readLong(int32_t &retval1, int32_t &retval2)
+{
+    retval1 = readInt();
+    retval2 = readInt();
+}
+
+void ByteStream::writeDataReference(int32_t value1 = 0, int32_t value2 = 0)
+{
+    if (value1 == 0) {
+        writeVInt(0);
+    } else {
+        writeVInt(value1);
+        writeVInt(value2);
+    }
 }
 
 [[nodiscard]] bool ByteStream::canRead(size_t size) const

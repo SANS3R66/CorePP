@@ -2,7 +2,7 @@
 #include <chrono>
 #include "Stream/ByteStream.hpp"
 
-int main()
+int main(int argc, char* argv[])
 {
     auto start = std::chrono::high_resolution_clock::now();
     
@@ -29,6 +29,23 @@ int main()
     stream.writeVInt(658067456);
     stream.seek(0);
     std::cout << stream.readVInt() << std::endl;
+
+    stream.reset();
+
+    stream.writeBoolean(true);
+    stream.seek(0);
+    std::cout << std::boolalpha << stream.readBoolean() << std::endl;
+
+    stream.reset();
+
+    stream.writeLong(1234, 5678);
+    stream.seek(0);
+
+    int32_t int1;
+    int32_t int2;
+
+    stream.readLong(int1, int2);
+    std::cout << int1 << " " <<int2 << std::endl;
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> duration = end - start;
